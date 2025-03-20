@@ -6,9 +6,22 @@ export interface PlotScalarData {
   type?: string; // Add type property for use in UI components
 }
 
+// Define the 3D view data types based on three_d_view.rs
+export interface ThreeDPoint {
+  points: [number, number, number][];
+}
+
+export interface ThreeDViewData {
+  primatives: [number, ThreeDPrimitive][];
+}
+
+export type ThreeDPrimitive = {
+  Point: [number, number, number][];
+}
+
 export interface PlotWidget {
   plot_scalar?: PlotScalarData;
-  // We can add other widget types as needed
+  '3d_view'?: ThreeDViewData;
 }
 
 // Define the Viz type based on what's coming from the backend

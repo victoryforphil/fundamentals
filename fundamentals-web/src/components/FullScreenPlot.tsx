@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWebSocket, Viz } from '../context/WebSocketContext';
 import { PlotViz } from './PlotViz';
+import { ThreeDViz } from './ThreeDViz';
 import {
   Box,
   ActionIcon,
@@ -153,6 +154,18 @@ function renderFullScreenPlot(viz: Viz) {
       <Box style={{ height: '100%', padding: '16px' }}>
         <PlotViz 
           data={widget.plot_scalar} 
+          name={viz.name} 
+          fullScreen={true}
+        />
+      </Box>
+    );
+  }
+  
+  if (widget['3d_view']) {
+    return (
+      <Box style={{ height: '100%', padding: '16px' }}>
+        <ThreeDViz 
+          data={widget['3d_view']} 
           name={viz.name} 
           fullScreen={true}
         />

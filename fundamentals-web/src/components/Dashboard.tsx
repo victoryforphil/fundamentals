@@ -1,6 +1,7 @@
 import { useWebSocket } from '../context/WebSocketContext';
 import { useNavigate } from 'react-router-dom';
 import { PlotViz } from './PlotViz';
+import { ThreeDViz } from './ThreeDViz';
 import {
   Container,
   Title,
@@ -13,46 +14,20 @@ import {
   Badge,
   ActionIcon,
   Tooltip,
-  useMantineColorScheme,
-  useComputedColorScheme,
   Indicator
 } from '@mantine/core';
 import { 
   IconRefresh, 
-  IconSun, 
-  IconMoon, 
-  IconChartLine,
   IconPlugConnected
 } from '@tabler/icons-react';
-
-// Theme toggle component
-function ThemeToggle() {
-  const { setColorScheme } = useMantineColorScheme();
-  const computedColorScheme = useComputedColorScheme('dark');
-  
-  const toggleColorScheme = () => {
-    setColorScheme(computedColorScheme === 'dark' ? 'light' : 'dark');
-  };
-
-  return (
-    <ActionIcon 
-      onClick={toggleColorScheme} 
-      variant="light" 
-      size="md"
-      aria-label="Toggle color scheme"
-    >
-      {computedColorScheme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
-    </ActionIcon>
-  );
-}
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { messages, isConnected, clearMessages } = useWebSocket();
   
   // Navigate to full screen plot view
-  const viewFullScreen = (index: number) => {
-    navigate(`/plot_scalar/${index}`);
+  const viewFullScreen = (index: number, type: string) => {
+    navigate(`/${type}/${index}`);
   };
   
   return (
@@ -60,77 +35,71 @@ export default function Dashboard() {
       <Stack gap="md">
         <Group justify="space-between">
           <Group>
-            <Title>Fundamentals Dashboard</Title>
-            {messages.length > 0 && (
-              <Badge size="lg" variant="filled">
-                {messages.length} Visualizations
-              </Badge>
-            )}
+            <Title order={3}>Visualizations</Title>
+            <Indicator position="top-end" color={isConnected ? "green" : "red"} size={10}>
+              <ActionIcon variant="light" color={isConnected ? "green" : "red"} size="md">
+                <IconPlugConnected size={16} />
+              </ActionIcon>
+            </Indicator>
+            <Badge>{messages.length} Items</Badge>
           </Group>
-          
           <Group>
-            <Tooltip label={isConnected ? "WebSocket Connected" : "WebSocket Disconnected - Reconnecting in background..."}>
-              <Indicator 
-                inline 
-                size={12} 
-                processing={!isConnected}
-                color={isConnected ? "green" : "red"}
-                withBorder
-              >
-                <ActionIcon 
-                  variant="light" 
-                  aria-label="Connection status"
-                  size="md"
-                >
-                  <IconPlugConnected size={16} color={isConnected ? "green" : "red"} />
-                </ActionIcon>
-              </Indicator>
-            </Tooltip>
-            {messages.length > 0 && (
+            <Tooltip label="Clear all visualizations">
               <Button 
-                variant="light" 
-                leftSection={<IconRefresh size={16} />}
-                onClick={clearMessages}
+                leftSection={<IconRefresh size={16} />} 
+                onClick={clearMessages} 
+                variant="light"
+                disabled={messages.length === 0}
               >
-                Clear All
+                Clear
               </Button>
-            )}
-            <ThemeToggle />
+            </Tooltip>
           </Group>
         </Group>
         
         {messages.length === 0 ? (
-          <Card withBorder p="xl" radius="md">
-            <Stack align="center" gap="md" style={{ minHeight: '40vh' }} justify="center">
-              <IconChartLine size={48} opacity={0.5} />
-              <Text size="xl">No visualization data available</Text>
-              <Text color="dimmed">
-                Run your application to generate plots and visualizations.
+          <Card withBorder p="xl">
+            <Stack align="center" gap="md">
+              <Text size="lg">No visualizations available</Text>
+              <Text size="sm" c="dimmed">
+                Connect to a data source or run a simulation to see visualizations here.
               </Text>
-              {!isConnected && (
-                <Badge color="yellow" variant="light" size="md">
-                  WebSocket disconnected - Reconnecting in background...
-                </Badge>
-              )}
             </Stack>
           </Card>
         ) : (
-          <Grid gutter="md">
-            {messages.map((viz, index) => (
-              viz.widgets.map((widget, widgetIndex) => (
-                widget.plot_scalar && (
-                  <Grid.Col span={{ base: 12, md: 6, lg: 4 }} key={`${index}-${widgetIndex}`}>
-                    <div style={{ position: 'relative' }}>
-                      <PlotViz 
-                        data={widget.plot_scalar} 
-                        name={viz.name}
-                        onFullscreen={() => viewFullScreen(index)} 
-                      />
-                    </div>
-                  </Grid.Col>
-                )
-              ))
-            ))}
+          <Grid>
+            {messages.map((viz, index) => {
+              // Render each visualization based on its type
+              const widget = viz.widgets[0]; // Assuming first widget determines type
+              
+              return (
+                <Grid.Col span={{ base: 12, md: 6, lg: 4 }} key={index}>
+                  {widget.plot_scalar ? (
+                    <PlotViz 
+                      data={widget.plot_scalar} 
+                      name={viz.name} 
+                      onFullscreen={() => viewFullScreen(index, 'plot_scalar')}
+                    />
+                  ) : widget['3d_view'] ? (
+                    <ThreeDViz 
+                      data={widget['3d_view']} 
+                      name={viz.name} 
+                      onFullscreen={() => viewFullScreen(index, '3d_view')}
+                    />
+                  ) : (
+                    <Card withBorder p="md">
+                      <Stack>
+                        <Group justify="space-between">
+                          <Title order={4}>{viz.name}</Title>
+                          <Badge color="gray">Unknown</Badge>
+                        </Group>
+                        <Text>Unsupported visualization type</Text>
+                      </Stack>
+                    </Card>
+                  )}
+                </Grid.Col>
+              );
+            })}
           </Grid>
         )}
       </Stack>
