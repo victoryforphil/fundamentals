@@ -1,14 +1,12 @@
 use fundamentals_core::recording::Recording;
 use warp::Filter;
-use warp::{ Rejection};
 use clap::Parser;
 use log::info;
-mod state;
-mod ws_handler;
-
-
-// Import std::path for handling file paths
 use std::path::{Path, PathBuf};
+use std::net::SocketAddr;
+
+pub mod state;
+pub mod ws_handler;
 
 /// Command line arguments for the WebSocket bridge
 #[derive(Parser, Debug, Clone)]
@@ -31,12 +29,9 @@ pub struct WSBridgeArgs {
     pub exit_after_serve: bool,
 }
 
-#[tokio::main]
-async fn main() {
-    let args = WSBridgeArgs::parse();
-    pretty_env_logger::init();
-    
-    // Set the exit_after_serve flag from the command line argument
+/// Starts the WebSocket bridge server with the given arguments
+pub async fn start_server(args: WSBridgeArgs) {
+    // Set the exit_after_serve flag from arguments
     ws_handler::set_exit_after_serve(args.exit_after_serve);
     
     // Initialize state with command line arguments
@@ -60,8 +55,8 @@ async fn main() {
         .and_then(ws_handler::ws_handler);
 
     // Static files route - serve files from the static directory
-    let cargo_root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    let static_dir = Path::new(&cargo_root).parent().unwrap().join("fundamentals-web/dist");
+    let cargo_root = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    let static_dir = Path::new(&cargo_root).parent().unwrap_or(Path::new(".")).join("fundamentals-web/dist");
     
     // Route to serve static files
     let static_route = warp::fs::dir(static_dir.clone());
@@ -80,17 +75,26 @@ async fn main() {
         .or(static_route)
         .or(spa_fallback);
 
+    let socket_addr: SocketAddr = format!("0.0.0.0:{}", args.port).parse().unwrap();
     println!("Server started at http://0.0.0.0:{}", args.port);
 
-    // Wait 500ms before opening the browser
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-
-    // Auto open static path + /plot/0?ws=ws://0.0.0.0:3031/ws
+    // Auto open static path + /plot/0
     let url = format!("http://localhost:{}/plot/0", args.port);
-
     open::that(url).unwrap();
     
-    warp::serve(routes).run(([0, 0, 0, 0], args.port)).await;
+    warp::serve(routes).run(socket_addr).await;
+}
+
+/// Starts the WebSocket bridge server with the given recording file
+pub async fn start_server_with_recording(recording_path: PathBuf, port: u16) {
+    let args = WSBridgeArgs {
+        address: "127.0.0.1".to_string(),
+        port,
+        input: recording_path,
+        exit_after_serve: true,
+    };
+    
+    start_server(args).await;
 }
 
 fn with_state(state: state::StateHandle) -> impl Filter<Extract = (state::StateHandle,), Error = std::convert::Infallible> + Clone {

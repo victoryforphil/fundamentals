@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "fundamentals-core",
+    "fundamentals-bridge",
+    "fundamentals-tauri/src-tauri", "fundamentals-sdk", "fundamentals-tester",
+]
+
+[workspace.package]

@@ -6,7 +6,7 @@
       "dependencies": {
         "@emotion/react": "^11.14.0",
         "@mantine/charts": "^7.16.0",
-        "@mantine/code-highlight": "^7.16.0",
+        "@mantine/code-highlight": "^7.17.2",
         "@mantine/core": "^7.16.0",
         "@mantine/dates": "^7.16.0",
         "@mantine/dropzone": "^7.16.0",
@@ -36,7 +36,7 @@
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-map-gl": "^7.1.8",
-        "react-router-dom": "^7.1.1",
+        "react-router-dom": "^7.4.0",
         "recharts": "^2.15.0",
         "resium": "^1.18.3",
         "three": "^0.171.0",
