@@ -1,0 +1,8 @@
+[package]
+name = "fundamentals-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+arrow = "54.2.1"
+serde = { version = "1.0.219", features = ["derive"] }
