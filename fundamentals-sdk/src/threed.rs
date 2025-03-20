@@ -1,3 +1,5 @@
+use core::time;
+
 use fundamentals_core::{
     recording::Recording, 
     widgets::{Widget, three_d_view::{ThreeDPrimative, ThreeDViewData}},
@@ -17,8 +19,8 @@ impl ThreeDView {
         }
     }
 
-    pub fn add_points(&mut self, points: Vec<(f64, f64, f64)>, intensity: f64) {
-        self.primatives.push((intensity, ThreeDPrimative::Point(points)));
+    pub fn add_points(&mut self, points: Vec<(f64, f64, f64)>, time: f64) {
+        self.primatives.push((time, ThreeDPrimative::Point(points)));
     }
 
     pub fn log(&self, recording: &mut Recording) {

@@ -74,29 +74,32 @@ export default function Dashboard() {
               
               return (
                 <Grid.Col span={{ base: 12, md: 6, lg: 4 }} key={index}>
-                  {widget.plot_scalar ? (
-                    <PlotViz 
-                      data={widget.plot_scalar} 
-                      name={viz.name} 
-                      onFullscreen={() => viewFullScreen(index, 'plot_scalar')}
-                    />
-                  ) : widget['3d_view'] ? (
-                    <ThreeDViz 
-                      data={widget['3d_view']} 
-                      name={viz.name} 
-                      onFullscreen={() => viewFullScreen(index, '3d_view')}
-                    />
-                  ) : (
-                    <Card withBorder p="md">
-                      <Stack>
-                        <Group justify="space-between">
-                          <Title order={4}>{viz.name}</Title>
-                          <Badge color="gray">Unknown</Badge>
-                        </Group>
-                        <Text>Unsupported visualization type</Text>
-                      </Stack>
-                    </Card>
-                  )}
+                  <Card withBorder p={0} mb="xs">
+                    
+                    {widget.plot_scalar ? (
+                      <PlotViz 
+                        data={widget.plot_scalar} 
+                        name={viz.name} 
+                        onFullscreen={() => viewFullScreen(index, 'plot_scalar')}
+                      />
+                    ) : widget['3d_view'] ? (
+                      <ThreeDViz 
+                        data={widget['3d_view']} 
+                        name={viz.name} 
+                        onFullscreen={() => viewFullScreen(index, '3d_view')}
+                      />
+                    ) : (
+                      <Card.Section p="md">
+                        <Stack>
+                          <Group justify="space-between">
+                            <Title order={4}>{viz.name}</Title>
+                            <Badge color="gray">Unknown</Badge>
+                          </Group>
+                          <Text>Unsupported visualization type</Text>
+                        </Stack>
+                      </Card.Section>
+                    )}
+                  </Card>
                 </Grid.Col>
               );
             })}

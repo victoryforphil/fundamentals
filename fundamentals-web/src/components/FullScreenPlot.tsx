@@ -6,7 +6,6 @@ import { ThreeDViz } from './ThreeDViz';
 import {
   Box,
   ActionIcon,
-  Title,
   Text,
   Stack,
   Group,
@@ -43,7 +42,7 @@ function ThemeToggle() {
 export default function FullScreenPlot() {
   const { vizIndex } = useParams<{ vizIndex: string }>();
   const navigate = useNavigate();
-  const { messages, isConnected } = useWebSocket();
+  const { messages } = useWebSocket();
   const [viz, setViz] = useState<Viz | null>(null);
   const [notFound, setNotFound] = useState(false);
   
@@ -65,18 +64,10 @@ export default function FullScreenPlot() {
   // Function to navigate back to the main page
   const goBack = () => navigate('/dashboard');
 
-  // Show connection status indicator without blocking the UI
-  const ConnectionStatus = () => (
-    <Text size="sm" c={isConnected ? "green" : "red"} style={{ position: 'fixed', top: 8, right: 16 }}>
-      {isConnected ? "Connected" : "Disconnected - Reconnecting..."}
-    </Text>
-  );
-
   // If we don't have a valid visualization yet
   if (notFound) {
     return (
       <Box style={{ height: '100vh', padding: '16px' }}>
-        <ConnectionStatus />
         <Center style={{ height: '100%' }}>
           <Stack align="center" gap="md">
             <Text>No visualization data available for this index.</Text>
@@ -93,18 +84,14 @@ export default function FullScreenPlot() {
   if (viz) {
     return (
       <Box style={{ height: '100vh', padding: '16px' }}>
-        <ConnectionStatus />
         <Paper p="sm" withBorder mb="md">
           <Group justify="space-between">
             <Group>
-              <Tooltip label="Back to Dashboard">
-                <ActionIcon onClick={goBack} variant="light">
-                  <IconArrowLeft size={18} />
+              <Tooltip label="Go back to dashboard">
+                <ActionIcon onClick={goBack} variant="light" size="md">
+                  <IconArrowLeft size={16} />
                 </ActionIcon>
               </Tooltip>
-              <Title order={3}>{viz.name}</Title>
-            </Group>
-            <Group>
               <Text size="sm" c="dimmed">
                 Visualization {parseInt(vizIndex || '0', 10) + 1} of {messages.length}
               </Text>
@@ -129,7 +116,6 @@ export default function FullScreenPlot() {
   // Loading state - but still don't block the UI
   return (
     <Box style={{ height: '100vh', padding: '16px' }}>
-      <ConnectionStatus />
       <Center style={{ height: '100%' }}>
         <Stack align="center" gap="md">
           <Loader size="xl" />

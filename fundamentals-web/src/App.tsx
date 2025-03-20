@@ -50,7 +50,7 @@ function DashboardLayout() {
   };
 
   return (
-    <AppShell header={{ height: 30 }}>
+    <AppShell header={{ height: 50 }}>
       <AppShell.Header p="md">
         <Flex align="center" justify="space-between">
           <Group>
