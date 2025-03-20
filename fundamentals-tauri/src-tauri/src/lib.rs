@@ -69,8 +69,6 @@ pub fn run() {
             "You can start the bridge manually using the start_bridge_with_recording command."
         );
     }
-    // wait 100ms before launching the Tauri application
-    std::thread::sleep(std::time::Duration::from_millis(100));
 
     // Log the tauri.conf.json path and content for debugging
     let mut context = tauri::generate_context!();

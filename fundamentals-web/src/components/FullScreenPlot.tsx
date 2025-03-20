@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWebSocket, Viz } from '../context/WebSocketContext';
 import { PlotViz } from './PlotViz';
@@ -14,7 +14,8 @@ import {
   Center,
   Paper,
   useComputedColorScheme,
-  useMantineColorScheme
+  useMantineColorScheme,
+  Transition
 } from '@mantine/core';
 import { IconArrowLeft, IconSun, IconMoon } from '@tabler/icons-react';
 
@@ -30,7 +31,7 @@ function ThemeToggle() {
   return (
     <ActionIcon 
       onClick={toggleColorScheme} 
-      variant="light" 
+      variant="subtle" 
       size="md" 
       aria-label="Toggle color scheme"
     >
@@ -45,6 +46,25 @@ export default function FullScreenPlot() {
   const { messages } = useWebSocket();
   const [viz, setViz] = useState<Viz | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+  const controlsTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  // Auto-hide controls after a delay
+  useEffect(() => {
+    if (showControls && controlsTimeout.current === null) {
+      controlsTimeout.current = setTimeout(() => {
+        setShowControls(false);
+        controlsTimeout.current = null;
+      }, 3000);
+    }
+    
+    return () => {
+      if (controlsTimeout.current) {
+        clearTimeout(controlsTimeout.current);
+        controlsTimeout.current = null;
+      }
+    };
+  }, [showControls]);
   
   useEffect(() => {
     if (messages.length > 0 && vizIndex) {
@@ -64,10 +84,21 @@ export default function FullScreenPlot() {
   // Function to navigate back to the main page
   const goBack = () => navigate('/dashboard');
 
+  // Mouse move handler to show controls
+  const handleMouseMove = () => {
+    setShowControls(true);
+    
+    // Reset the auto-hide timer
+    if (controlsTimeout.current) {
+      clearTimeout(controlsTimeout.current);
+      controlsTimeout.current = null;
+    }
+  };
+
   // If we don't have a valid visualization yet
   if (notFound) {
     return (
-      <Box style={{ height: '100vh', padding: '16px' }}>
+      <Box style={{ height: '100vh' }}>
         <Center style={{ height: '100%' }}>
           <Stack align="center" gap="md">
             <Text>No visualization data available for this index.</Text>
@@ -83,29 +114,51 @@ export default function FullScreenPlot() {
   // If we still have viz data, show it even when disconnected
   if (viz) {
     return (
-      <Box style={{ height: '100vh', padding: '16px' }}>
-        <Paper p="sm" withBorder mb="md">
-          <Group justify="space-between">
-            <Group>
-              <Tooltip label="Go back to dashboard">
-                <ActionIcon onClick={goBack} variant="light" size="md">
-                  <IconArrowLeft size={16} />
-                </ActionIcon>
-              </Tooltip>
-              <Text size="sm" c="dimmed">
-                Visualization {parseInt(vizIndex || '0', 10) + 1} of {messages.length}
-              </Text>
-              <ThemeToggle />
-            </Group>
-          </Group>
-        </Paper>
+      <Box style={{ height: '100vh' }} onMouseMove={handleMouseMove}>
+        {/* Floating controls that appear on hover */}
+        <Transition mounted={showControls} transition="fade" duration={200}>
+          {(styles) => (
+            <Box
+              style={{
+                ...styles,
+                position: 'absolute',
+                top: 10,
+                left: 10,
+                zIndex: 100,
+              }}
+            >
+              <Paper 
+                p="xs" 
+                radius="md" 
+                style={{ 
+                  opacity: 0.9, 
+                  backdropFilter: 'blur(4px)',
+                  background: 'rgba(0, 0, 0, 0.5)', 
+                  maxWidth: '300px',
+                }}
+              >
+                <Group>
+                  <Tooltip label="Go back to dashboard">
+                    <ActionIcon onClick={goBack} variant="subtle" size="md">
+                      <IconArrowLeft size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Text size="sm" c="dimmed" truncate>
+                    {viz.name}
+                  </Text>
+                  <ThemeToggle />
+                </Group>
+              </Paper>
+            </Box>
+          )}
+        </Transition>
 
         {viz.widgets.length > 0 ? (
-          <Box style={{ height: 'calc(100vh - 100px)' }}>
+          <Box style={{ height: '100vh' }}>
             {renderFullScreenPlot(viz)}
           </Box>
         ) : (
-          <Center style={{ height: 'calc(100vh - 100px)' }}>
+          <Center style={{ height: '100%' }}>
             <Text>No plot data available in this visualization.</Text>
           </Center>
         )}
@@ -115,7 +168,7 @@ export default function FullScreenPlot() {
 
   // Loading state - but still don't block the UI
   return (
-    <Box style={{ height: '100vh', padding: '16px' }}>
+    <Box style={{ height: '100vh' }}>
       <Center style={{ height: '100%' }}>
         <Stack align="center" gap="md">
           <Loader size="xl" />
@@ -137,7 +190,7 @@ function renderFullScreenPlot(viz: Viz) {
   
   if (widget.plot_scalar) {
     return (
-      <Box style={{ height: '100%', padding: '16px' }}>
+      <Box style={{ height: '100%' }}>
         <PlotViz 
           data={widget.plot_scalar} 
           name={viz.name} 
@@ -149,7 +202,7 @@ function renderFullScreenPlot(viz: Viz) {
   
   if (widget['3d_view']) {
     return (
-      <Box style={{ height: '100%', padding: '16px' }}>
+      <Box style={{ height: '100%' }}>
         <ThreeDViz 
           data={widget['3d_view']} 
           name={viz.name} 

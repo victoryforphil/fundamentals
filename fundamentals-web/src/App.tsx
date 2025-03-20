@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MantineProvider, AppShell, Flex, Title, Text, Group, Menu, ActionIcon, useComputedColorScheme, useMantineColorScheme, Center, Loader, Stack, Paper } from '@mantine/core';
+import { MantineProvider, AppShell, Flex, Title, Group, Menu, ActionIcon, useComputedColorScheme, useMantineColorScheme, Center, Loader, Stack, Paper } from '@mantine/core';
 import { WebSocketProvider, useWebSocket } from './context/WebSocketContext';
 import FullScreenPlot from './components/FullScreenPlot';
 import Dashboard from './components/Dashboard';
@@ -98,7 +98,7 @@ function AutoRouter() {
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    // Set a timeout to show loading state for at least 1 second
+    // Reduce initial loading time from 1000ms to 500ms
     const timer = setTimeout(() => {
       if (messages.length > 0) {
         // Get the latest viz (recording)
@@ -124,7 +124,7 @@ function AutoRouter() {
       } else {
         setLoading(false);
       }
-    }, 1000);
+    }, 500);
     
     return () => clearTimeout(timer);
   }, [messages, navigate]);
@@ -156,7 +156,7 @@ function AutoRouter() {
               {isConnected ? (
                 <Title order={6} c="green">Connected</Title>
               ) : (
-                <Title order={6} c="red">Disconnected - Reconnecting...</Title>
+                <Title order={6} c="red">Disconnected - Attempting to connect...</Title>
               )}
             </div>
           </Center>

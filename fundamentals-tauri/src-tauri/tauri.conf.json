@@ -14,10 +14,10 @@
     "windows": [
       {
         "title": "Fundamentals",
-        "width": 1280,
+        "width": 800,
         "height": 800,
-        "minWidth": 800,
-        "minHeight": 600,
+        "minWidth": 400,
+        "minHeight": 400,
         "center": true
         
       }
@@ -36,5 +36,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+    
   }
 }

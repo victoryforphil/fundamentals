@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { PlotViz } from './PlotViz';
 import { ThreeDViz } from './ThreeDViz';
 import {
-  Container,
   Title,
   Text,
   Grid,
@@ -14,7 +13,8 @@ import {
   Badge,
   ActionIcon,
   Tooltip,
-  Indicator
+  Indicator,
+  Box
 } from '@mantine/core';
 import { 
   IconRefresh, 
@@ -31,35 +31,39 @@ export default function Dashboard() {
   };
   
   return (
-    <Container fluid p="xl">
+    <Box style={{ height: '100%', padding: '16px 24px' }}>
       <Stack gap="md">
-        <Group justify="space-between">
-          <Group>
+        <Group justify="space-between" align="center">
+          <Group gap="md">
             <Title order={3}>Visualizations</Title>
             <Indicator position="top-end" color={isConnected ? "green" : "red"} size={10}>
-              <ActionIcon variant="light" color={isConnected ? "green" : "red"} size="md">
+              <ActionIcon variant="subtle" color={isConnected ? "green" : "red"} size="md">
                 <IconPlugConnected size={16} />
               </ActionIcon>
             </Indicator>
-            <Badge>{messages.length} Items</Badge>
+            {messages.length > 0 && (
+              <Badge variant="light" radius="sm">
+                {messages.length} Items
+              </Badge>
+            )}
           </Group>
-          <Group>
+          {messages.length > 0 && (
             <Tooltip label="Clear all visualizations">
               <Button 
                 leftSection={<IconRefresh size={16} />} 
                 onClick={clearMessages} 
-                variant="light"
-                disabled={messages.length === 0}
+                variant="subtle"
+                size="sm"
               >
                 Clear
               </Button>
             </Tooltip>
-          </Group>
+          )}
         </Group>
         
         {messages.length === 0 ? (
-          <Card withBorder p="xl">
-            <Stack align="center" gap="md">
+          <Card shadow="sm" p="xl" radius="md" withBorder style={{ backgroundColor: 'transparent' }}>
+            <Stack align="center" gap="md" py="xl">
               <Text size="lg">No visualizations available</Text>
               <Text size="sm" c="dimmed">
                 Connect to a data source or run a simulation to see visualizations here.
@@ -74,8 +78,7 @@ export default function Dashboard() {
               
               return (
                 <Grid.Col span={{ base: 12, md: 6, lg: 4 }} key={index}>
-                  <Card withBorder p={0} mb="xs">
-                    
+                  <Card shadow="sm" padding={0} radius="md" withBorder mb="md">
                     {widget.plot_scalar ? (
                       <PlotViz 
                         data={widget.plot_scalar} 
@@ -93,7 +96,7 @@ export default function Dashboard() {
                         <Stack>
                           <Group justify="space-between">
                             <Title order={4}>{viz.name}</Title>
-                            <Badge color="gray">Unknown</Badge>
+                            <Badge color="gray" variant="light">Unknown</Badge>
                           </Group>
                           <Text>Unsupported visualization type</Text>
                         </Stack>
@@ -106,6 +109,6 @@ export default function Dashboard() {
           </Grid>
         )}
       </Stack>
-    </Container>
+    </Box>
   );
 } 

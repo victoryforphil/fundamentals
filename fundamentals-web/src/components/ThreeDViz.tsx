@@ -15,10 +15,15 @@ import {
   useMantineTheme, 
   useComputedColorScheme,
   Tooltip,
-  Switch
+  Switch,
+  Box,
+  Paper,
+  Transition,
+  Flex,
+  ActionIcon
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Grid } from '@react-three/drei';
 import { IconMaximize, IconAdjustments, IconPlayerPlay, IconPlayerPause } from '@tabler/icons-react';
 import * as THREE from 'three';
@@ -233,6 +238,40 @@ export function ThreeDViz({ data, name, fullScreen = false, onFullscreen }: Thre
   const [showTrails, setShowTrails] = useState<boolean>(false);
   const [trailCount, setTrailCount] = useState<number>(5);
   
+  // Hover controls state for fullscreen mode
+  const [showControls, setShowControls] = useState(false);
+  const controlsTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  // Auto-hide controls after a delay when in fullscreen mode
+  useEffect(() => {
+    if (fullScreen && showControls && controlsTimeout.current === null) {
+      controlsTimeout.current = setTimeout(() => {
+        setShowControls(false);
+        controlsTimeout.current = null;
+      }, 3000);
+    }
+    
+    return () => {
+      if (controlsTimeout.current) {
+        clearTimeout(controlsTimeout.current);
+        controlsTimeout.current = null;
+      }
+    };
+  }, [showControls, fullScreen]);
+  
+  // Mouse move handler to show controls in fullscreen mode
+  const handleMouseMove = () => {
+    if (fullScreen) {
+      setShowControls(true);
+      
+      // Reset the auto-hide timer
+      if (controlsTimeout.current) {
+        clearTimeout(controlsTimeout.current);
+        controlsTimeout.current = null;
+      }
+    }
+  };
+  
   // Update colors when theme changes
   useEffect(() => {
     setPointColor(theme.colors[theme.primaryColor][isDark ? 4 : 6]);
@@ -249,33 +288,27 @@ export function ThreeDViz({ data, name, fullScreen = false, onFullscreen }: Thre
         setTimeIndex(Math.max(...timeValues));
       }
     }
-  }, [data.primatives]);
+  }, [data, timeIndex]);
   
-  // Animation loop for timeline playback
+  // Handle play/pause animation
   useEffect(() => {
-    if (isPlaying) {
-      let startTime = performance.now();
-      const animate = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
+    const animate = () => {
+      setTimeIndex(prevIndex => {
+        // Increment by small amount to make it smoother
+        const nextIndex = prevIndex + 0.5;
         
-        // Update every 100ms
-        if (elapsed > 100) {
-          setTimeIndex(prev => {
-            // Reset to 0 if we've reached the end
-            if (prev >= maxTimeIndex) {
-              return 0;
-            }
-            // Find the next available time index
-            const timeValues = data.primatives.map(([time]) => time).sort((a, b) => a - b);
-            const nextIndex = timeValues.find(t => t > prev) || 0;
-            return nextIndex;
-          });
-          startTime = currentTime;
+        // If we reach the end, loop back to beginning
+        if (nextIndex > maxTimeIndex) {
+          return 0;
         }
         
-        animationRef.current = requestAnimationFrame(animate);
-      };
+        return nextIndex;
+      });
       
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    
+    if (isPlaying) {
       animationRef.current = requestAnimationFrame(animate);
     }
     
@@ -284,128 +317,203 @@ export function ThreeDViz({ data, name, fullScreen = false, onFullscreen }: Thre
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isPlaying, maxTimeIndex, data.primatives]);
+  }, [isPlaying, maxTimeIndex]);
   
-  // 3D Controls panel
+  // Controls component
   const vizControls = (
     <Collapse in={controlsOpened}>
       <Stack gap="md" my="md">
         <Group>
+          <Select
+            label="Point Color"
+            defaultValue={theme.primaryColor}
+            data={Object.keys(theme.colors).map(color => ({ value: color, label: color }))}
+            onChange={(value) => {
+              if (value) {
+                setPointColor(theme.colors[value][isDark ? 4 : 6]);
+              }
+            }}
+            style={{ width: 140 }}
+          />
+          
           <NumberInput
             label="Point Size"
             value={pointSize}
-            onChange={(val) => setPointSize(Number(val))}
+            onChange={(value) => setPointSize(Number(value))}
             min={1}
             max={20}
-            style={{ width: '120px' }}
-          />
-          
-          <Select
-            label="Point Color"
-            value={pointColor}
-            onChange={(value) => setPointColor(value || theme.colors[theme.primaryColor][isDark ? 4 : 6])}
-            data={Object.keys(theme.colors).map(colorName => ({
-              value: theme.colors[colorName][isDark ? 4 : 6],
-              label: colorName
-            }))}
-            style={{ width: '140px' }}
+            style={{ width: 120 }}
           />
         </Group>
         
-        <Group>
-          <Switch
-            label="Show Trails"
-            checked={showTrails}
-            onChange={(event) => setShowTrails(event.currentTarget.checked)}
+        <Switch
+          label="Show Motion Trails"
+          checked={showTrails}
+          onChange={(e) => setShowTrails(e.currentTarget.checked)}
+        />
+        
+        {showTrails && (
+          <NumberInput
+            label="Trail Length"
+            value={trailCount}
+            onChange={(value) => setTrailCount(Number(value))}
+            min={2}
+            max={20}
+            style={{ width: 140 }}
           />
-          
-          {showTrails && (
-            <NumberInput
-              label="Trail Count"
-              value={trailCount}
-              onChange={(val) => setTrailCount(Number(val))}
-              min={2}
-              max={20}
-              style={{ width: '120px' }}
-            />
-          )}
-        </Group>
+        )}
+        
+        <Stack gap="xs">
+          <Text fw={500} size="sm">Timeline</Text>
+          <Slider
+            value={timeIndex}
+            onChange={setTimeIndex}
+            min={0}
+            max={maxTimeIndex}
+            step={0.1}
+            label={(value) => value.toFixed(1)}
+            marks={[
+              { value: 0, label: '0' },
+              { value: maxTimeIndex / 2, label: (maxTimeIndex / 2).toFixed(1) },
+              { value: maxTimeIndex, label: maxTimeIndex.toFixed(1) },
+            ]}
+          />
+        </Stack>
       </Stack>
     </Collapse>
   );
   
-  // Timeline controls
-  const timelineControls = (
-    <Stack gap="xs" mt="md">
-      <Group justify="space-between">
-        <Text size="sm" fw={500}>Timeline</Text>
-        <Text size="xs" c="dimmed">{timeIndex.toFixed(2)}</Text>
-      </Group>
-      
-      <Group>
-        <Button 
-          variant="subtle" 
-          size="xs" 
-          onClick={() => setIsPlaying(!isPlaying)}
-        >
-          {isPlaying ? <IconPlayerPause size={16} /> : <IconPlayerPlay size={16} />}
-        </Button>
-        
-        <Slider
-          style={{ flex: 1 }}
-          value={timeIndex}
-          onChange={setTimeIndex}
-          min={0}
-          max={maxTimeIndex}
-          step={0.01}
-          label={null}
-        />
-      </Group>
-    </Stack>
+  // Canvas with 3D scene
+  const canvasContent = (
+    <Canvas style={{ width: '100%', height: '100%', background: 'transparent' }}>
+      <Scene 
+        data={data} 
+        color={pointColor} 
+        pointSize={pointSize} 
+        timeIndex={timeIndex}
+        showTrails={showTrails}
+        trailCount={trailCount}
+      />
+    </Canvas>
   );
   
-  return (
-    <Card shadow="sm" padding="lg" radius="md" withBorder>
-      <Group justify="space-between" mb="xs">
-        <Title order={4}>{name}</Title>
-        <Group gap="xs">
-          <Badge color="blue">3D</Badge>
-          <Tooltip label="Adjust Settings">
-            <Button variant="subtle" size="sm" onClick={toggleControls}>
-              <IconAdjustments size={16} />
-            </Button>
-          </Tooltip>
-          {!fullScreen && onFullscreen && (
-            <Tooltip label="View Fullscreen">
-              <Button variant="subtle" size="sm" onClick={onFullscreen}>
-                <IconMaximize size={16} />
-              </Button>
-            </Tooltip>
+  // For full screen mode with hovering controls
+  if (fullScreen) {
+    return (
+      <Box style={{ height: '100%', width: '100%', position: 'relative' }} onMouseMove={handleMouseMove}>
+        {/* Floating controls that appear on hover */}
+        <Transition mounted={showControls} transition="fade" duration={200}>
+          {(styles) => (
+            <Box
+              style={{
+                ...styles,
+                position: 'absolute',
+                bottom: 10,
+                left: 0,
+                right: 0,
+                zIndex: 100,
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+            >
+              <Paper 
+                p="xs" 
+                radius="md" 
+                style={{ 
+                  opacity: 0.9,
+                  backdropFilter: 'blur(4px)',
+                  background: 'rgba(0, 0, 0, 0.5)',
+                  maxWidth: '90%',
+                }}
+              >
+                <Stack gap="sm">
+                  <Flex justify="space-between" align="center">
+                    <Text fw={500} size="sm">{name}</Text>
+                    <Group>
+                      <Tooltip label={isPlaying ? 'Pause Animation' : 'Play Animation'}>
+                        <Button
+                          onClick={() => setIsPlaying(!isPlaying)}
+                          variant="subtle"
+                          color={isPlaying ? 'red' : 'green'}
+                          size="sm"
+                          leftSection={isPlaying ? <IconPlayerPause size={16} /> : <IconPlayerPlay size={16} />}
+                        >
+                          {isPlaying ? 'Pause' : 'Play'}
+                        </Button>
+                      </Tooltip>
+                      
+                      <Tooltip label="Configure 3D View">
+                        <Button 
+                          onClick={toggleControls} 
+                          variant="subtle"
+                          leftSection={<IconAdjustments size={16} />}
+                          size="sm"
+                        >
+                          Settings
+                        </Button>
+                      </Tooltip>
+                    </Group>
+                  </Flex>
+                  
+                  {vizControls}
+                </Stack>
+              </Paper>
+            </Box>
           )}
+        </Transition>
+        
+        <div style={{ width: '100%', height: '100%' }}>
+          {canvasContent}
+        </div>
+      </Box>
+    );
+  }
+  
+  // For dashboard/card view
+  return (
+    <Card shadow="sm" p="lg" withBorder>
+      <Card.Section withBorder inheritPadding py="xs">
+        <Group justify="space-between">
+          <Title order={4}>{name}</Title>
+          <Group gap="xs">
+            <Badge>{data.primatives.length} frames</Badge>
+            {onFullscreen && (
+              <Tooltip label="View Fullscreen">
+                <ActionIcon onClick={onFullscreen} variant="subtle">
+                  <IconMaximize size={16} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </Group>
         </Group>
+      </Card.Section>
+      
+      <div style={{ height: 300, width: '100%' }}>
+        {canvasContent}
+      </div>
+      
+      <Group mt="md" justify="space-between">
+        <Button 
+          onClick={toggleControls} 
+          variant="light" 
+          leftSection={<IconAdjustments size={16} />}
+          size="sm"
+        >
+          Configure
+        </Button>
+        
+        <Button
+          onClick={() => setIsPlaying(!isPlaying)}
+          variant="light"
+          color={isPlaying ? 'red' : 'green'}
+          leftSection={isPlaying ? <IconPlayerPause size={16} /> : <IconPlayerPlay size={16} />}
+          size="sm"
+        >
+          {isPlaying ? 'Pause' : 'Play'}
+        </Button>
       </Group>
       
       {vizControls}
-      
-      <div style={{ 
-        width: '100%', 
-        height: fullScreen ? 'calc(80vh - 200px)' : '300px',
-        borderRadius: theme.radius.md,
-        overflow: 'hidden'
-      }}>
-        <Canvas>
-          <Scene 
-            data={data} 
-            color={pointColor} 
-            pointSize={pointSize} 
-            timeIndex={timeIndex}
-            showTrails={showTrails}
-            trailCount={trailCount}
-          />
-        </Canvas>
-      </div>
-      
-      {timelineControls}
     </Card>
   );
 } 

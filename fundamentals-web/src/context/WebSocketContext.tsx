@@ -105,7 +105,7 @@ export function WebSocketProvider({
         setError(null);
         reconnectAttempts.current = 0;
         hasConnectedBefore.current = true;
-        console.log('WebSocket connected to', url);
+        console.log('WebSocket connected successfully to', url);
       };
 
       newSocket.onmessage = (event) => {
@@ -131,6 +131,7 @@ export function WebSocketProvider({
         
         // Only attempt reconnection if we haven't connected before
         if (!hasConnectedBefore.current) {
+          console.log('Attempting to reconnect...');
           scheduleReconnect(url);
         }
       };
@@ -157,11 +158,14 @@ export function WebSocketProvider({
       window.clearTimeout(reconnectTimer.current);
     }
     
-    // Fixed 250ms reconnect rate (4Hz)
+    // Reduce reconnect delay from 200ms to 100ms for faster connection attempts
+    const reconnectDelay = 100;
+    console.log(`Scheduling reconnect attempt ${reconnectAttempts.current + 1} in ${reconnectDelay}ms to ${url}`);
+    
     reconnectTimer.current = window.setTimeout(() => {
       reconnectAttempts.current += 1;
       connect(url);
-    }, 100);
+    }, reconnectDelay);
   }
 
   // Initial connection and cleanup
