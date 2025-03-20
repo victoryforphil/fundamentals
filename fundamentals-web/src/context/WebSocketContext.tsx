@@ -66,8 +66,8 @@ export function WebSocketProvider({
   const [messages, setMessages] = useState<Viz[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [connectionUrl, setConnectionUrl] = useState(defaultUrl);
-  const hasConnectedOnce = useRef(false);
   const reconnectTimer = useRef<number | undefined>(undefined);
+  const reconnectAttempts = useRef(0);
 
   // Function to clear all messages
   const clearMessages = () => {
@@ -89,7 +89,7 @@ export function WebSocketProvider({
       newSocket.onopen = () => {
         setIsConnected(true);
         setError(null);
-        hasConnectedOnce.current = true;
+        reconnectAttempts.current = 0;
         console.log('WebSocket connected to', url);
       };
 
@@ -114,52 +114,36 @@ export function WebSocketProvider({
       newSocket.onclose = () => {
         setIsConnected(false);
         console.log('WebSocket disconnected');
-        
-        // If we've never connected successfully, start fast reconnection attempts
-        if (!hasConnectedOnce.current) {
-          scheduleReconnect(url);
-        }
+        // Always try to reconnect, regardless if we've connected before
+        scheduleReconnect(url);
       };
 
     } catch (err) {
       console.error('Failed to connect WebSocket:', err);
       setError(`Failed to connect: ${err}`);
       setIsConnected(false);
-      
-      // If we've never connected successfully, start fast reconnection attempts
-      if (!hasConnectedOnce.current) {
-        scheduleReconnect(url);
-      }
+      // Always try to reconnect on error
+      scheduleReconnect(url);
     }
   }
   
-  // Schedule a reconnection attempt
+  // Schedule a reconnection attempt with exponential backoff
   function scheduleReconnect(url: string) {
     if (reconnectTimer.current) {
       window.clearTimeout(reconnectTimer.current);
     }
     
+    // Calculate backoff time: start with 250ms, max at 5s
+    const backoffTime = Math.min(250 * Math.pow(1.5, reconnectAttempts.current), 5000);
+    reconnectAttempts.current += 1;
+    
     reconnectTimer.current = window.setTimeout(() => {
-      console.log('Attempting to reconnect...');
+      console.log(`Attempting to reconnect (attempt ${reconnectAttempts.current})...`);
       connect(url);
-    }, 250); // 4Hz = every 250ms
+    }, backoffTime);
   }
 
-  // Auto-reconnect if connection is lost
-  useEffect(() => {
-    // If not connected and no active socket and we haven't connected successfully yet
-    if (!isConnected && !socket && !hasConnectedOnce.current) {
-      scheduleReconnect(connectionUrl);
-    }
-
-    return () => {
-      if (reconnectTimer.current) {
-        window.clearTimeout(reconnectTimer.current);
-      }
-    };
-  }, [isConnected, socket, connectionUrl]);
-
-  // Connect on initial load with the URL from params or default
+  // Initial connection and cleanup
   useEffect(() => {
     connect(connectionUrl);
 

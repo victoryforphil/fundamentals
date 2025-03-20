@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useWebSocket, Viz, PlotWidget } from '../context/WebSocketContext';
-import { PlotScalarViz } from './PlotScalarViz';
+import { useWebSocket, Viz } from '../context/WebSocketContext';
+import { PlotViz } from './PlotViz';
 import {
   Box,
   ActionIcon,
@@ -16,7 +16,7 @@ import {
   useComputedColorScheme,
   useMantineColorScheme
 } from '@mantine/core';
-import { IconArrowLeft, IconReload, IconMaximize, IconSun, IconMoon } from '@tabler/icons-react';
+import { IconArrowLeft, IconSun, IconMoon } from '@tabler/icons-react';
 
 // Theme toggle component
 function ThemeToggle() {
@@ -44,73 +44,100 @@ export default function FullScreenPlot() {
   const navigate = useNavigate();
   const { messages, isConnected } = useWebSocket();
   const [viz, setViz] = useState<Viz | null>(null);
+  const [notFound, setNotFound] = useState(false);
   
   useEffect(() => {
     if (messages.length > 0 && vizIndex) {
       const index = parseInt(vizIndex, 10);
       if (!isNaN(index) && index >= 0 && index < messages.length) {
         setViz(messages[index]);
+        setNotFound(false);
+      } else {
+        setNotFound(true);
       }
+    } else if (messages.length === 0 && vizIndex && viz === null) {
+      // Only set not found if we have no messages and no current viz
+      setNotFound(true);
     }
-  }, [messages, vizIndex]);
+  }, [messages, vizIndex, viz]);
 
   // Function to navigate back to the main page
   const goBack = () => navigate('/dashboard');
 
+  // Show connection status indicator without blocking the UI
+  const ConnectionStatus = () => (
+    <Text size="sm" c={isConnected ? "green" : "red"} style={{ position: 'fixed', top: 8, right: 16 }}>
+      {isConnected ? "Connected" : "Disconnected - Reconnecting..."}
+    </Text>
+  );
+
   // If we don't have a valid visualization yet
-  if (!viz) {
+  if (notFound) {
     return (
-      <Center style={{ height: '100vh' }}>
-        {isConnected ? (
+      <Box style={{ height: '100vh', padding: '16px' }}>
+        <ConnectionStatus />
+        <Center style={{ height: '100%' }}>
           <Stack align="center" gap="md">
-            <Loader size="xl" />
-            <Text>Loading visualization data...</Text>
-            <ActionIcon variant="light" onClick={goBack}>
-              <IconArrowLeft />
-            </ActionIcon>
-          </Stack>
-        ) : (
-          <Stack align="center" gap="md">
-            <Text>No visualization data available. Please check your connection.</Text>
+            <Text>No visualization data available for this index.</Text>
             <ActionIcon variant="filled" onClick={goBack}>
               <IconArrowLeft />
             </ActionIcon>
           </Stack>
-        )}
-      </Center>
+        </Center>
+      </Box>
     );
   }
 
+  // If we still have viz data, show it even when disconnected
+  if (viz) {
+    return (
+      <Box style={{ height: '100vh', padding: '16px' }}>
+        <ConnectionStatus />
+        <Paper p="sm" withBorder mb="md">
+          <Group justify="space-between">
+            <Group>
+              <Tooltip label="Back to Dashboard">
+                <ActionIcon onClick={goBack} variant="light">
+                  <IconArrowLeft size={18} />
+                </ActionIcon>
+              </Tooltip>
+              <Title order={3}>{viz.name}</Title>
+            </Group>
+            <Group>
+              <Text size="sm" c="dimmed">
+                Visualization {parseInt(vizIndex || '0', 10) + 1} of {messages.length}
+              </Text>
+              <ThemeToggle />
+            </Group>
+          </Group>
+        </Paper>
+
+        {viz.widgets.length > 0 ? (
+          <Box style={{ height: 'calc(100vh - 100px)' }}>
+            {renderFullScreenPlot(viz)}
+          </Box>
+        ) : (
+          <Center style={{ height: 'calc(100vh - 100px)' }}>
+            <Text>No plot data available in this visualization.</Text>
+          </Center>
+        )}
+      </Box>
+    );
+  }
+
+  // Loading state - but still don't block the UI
   return (
     <Box style={{ height: '100vh', padding: '16px' }}>
-      <Paper p="sm" withBorder mb="md">
-        <Group justify="space-between">
-          <Group>
-            <Tooltip label="Back to Dashboard">
-              <ActionIcon onClick={goBack} variant="light">
-                <IconArrowLeft size={18} />
-              </ActionIcon>
-            </Tooltip>
-            <Title order={3}>{viz.name}</Title>
-          </Group>
-          <Group>
-            <Text size="sm" c="dimmed">
-              Visualization {parseInt(vizIndex || '0', 10) + 1} of {messages.length}
-            </Text>
-            <ThemeToggle />
-          </Group>
-        </Group>
-      </Paper>
-
-      {viz.widgets.length > 0 ? (
-        <Box style={{ height: 'calc(100vh - 100px)' }}>
-          {renderFullScreenPlot(viz)}
-        </Box>
-      ) : (
-        <Center style={{ height: 'calc(100vh - 100px)' }}>
-          <Text>No plot data available in this visualization.</Text>
-        </Center>
-      )}
+      <ConnectionStatus />
+      <Center style={{ height: '100%' }}>
+        <Stack align="center" gap="md">
+          <Loader size="xl" />
+          <Text>Waiting for visualization data...</Text>
+          <ActionIcon variant="light" onClick={goBack}>
+            <IconArrowLeft />
+          </ActionIcon>
+        </Stack>
+      </Center>
     </Box>
   );
 }
@@ -124,7 +151,7 @@ function renderFullScreenPlot(viz: Viz) {
   if (widget.PlotScalar) {
     return (
       <Box style={{ height: '100%', padding: '16px' }}>
-        <PlotScalarViz 
+        <PlotViz 
           data={widget.PlotScalar} 
           name={viz.name} 
           fullScreen={true}

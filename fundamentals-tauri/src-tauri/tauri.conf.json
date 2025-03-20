@@ -6,9 +6,9 @@
   "identifier": "com.fundamentals-tauri.app",
   "build": {
     "beforeDevCommand": "cd ../fundamentals-web && bun run dev",
-    "devUrl": "http://localhost:5173/plot/0?ws=ws://localhost:3031/ws",
+    "devUrl": "http://localhost:5173/",
     "beforeBuildCommand": "cd ../fundamentals-web && bun run build",
-    "frontendDist": "../fundamentals-web/dist"
+    "frontendDist": "../../fundamentals-web/dist"
   },
   "app": {
     "windows": [
@@ -18,17 +18,12 @@
         "height": 800,
         "minWidth": 800,
         "minHeight": 600,
-        "center": true,
-        "url": "/plot/0?ws=ws://localhost:3031/ws"
+        "center": true
+        
       }
     ],
     "security": {
-      "csp": {
-        "default-src": "'self' customprotocol: asset: 'unsafe-inline' 'unsafe-eval'",
-        "connect-src": "ipc: http://ipc.localhost ws: wss: ws://localhost:3031/ws",
-        "img-src": "'self' asset: http://asset.localhost blob: data:",
-        "style-src": "'unsafe-inline' 'self'"
-      }
+      "csp": null
     }
   },
   "bundle": {

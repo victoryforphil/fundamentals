@@ -30,7 +30,7 @@ async fn main() {
     
     // Generate 100 sin waves
     for i in 0..100 {
-        let x = i as f64 / 10.0;
+        let x = i as f64 / 20.0;
         let y = (x * 10.0).sin();
         plotter.add_point(x, y);
     }
@@ -46,7 +46,4 @@ async fn main() {
         info!("Launching Bridge");
         logger.launch_bridge(args.open_browser  ).await.unwrap();
     }
-    
-    
-
 }

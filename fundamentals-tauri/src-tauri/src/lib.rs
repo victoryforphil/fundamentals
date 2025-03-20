@@ -56,7 +56,7 @@ pub fn run() {
     }
 
     // Log the tauri.conf.json path and content for debugging
-    let context = tauri::generate_context!();
+    let mut context = tauri::generate_context!();
    
     
     // Launch the Tauri application with custom dev web address in case paths are wrong

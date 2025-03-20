@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { MantineProvider, AppShell, Flex, Container, Title, Text, Group, Menu, ActionIcon, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
+import { MantineProvider, AppShell, Flex, Title, Text, Group, Menu, ActionIcon, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
 import { WebSocketProvider } from './context/WebSocketContext';
-import { WebSocketVisualizer } from './components/WebSocketVisualizer';
 import FullScreenPlot from './components/FullScreenPlot';
+import Dashboard from './components/Dashboard';
+import { theme } from './theme'
 import { IconSettings, IconSun, IconMoon } from '@tabler/icons-react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import '@mantine/core/styles.css';
@@ -49,19 +50,18 @@ function DashboardLayout() {
   };
 
   return (
-    <AppShell header={{ height: 60 }}>
+    <AppShell header={{ height: 30 }}>
       <AppShell.Header p="md">
         <Flex align="center" justify="space-between">
           <Group>
-            <Title order={2}>Fundamentals Web Viewer</Title>
-            <Text c="dimmed">WebSocket Visualization Client</Text>
+            <Title order={2}>Fundamentals</Title>
           </Group>
           
           <Group>
             <ThemeToggle />
             <Menu position="bottom-end" shadow="md">
               <Menu.Target>
-                <ActionIcon size="lg" variant="light">
+                <ActionIcon size="sm" variant="light">
                   <IconSettings size={18} />
                 </ActionIcon>
               </Menu.Target>
@@ -85,9 +85,7 @@ function DashboardLayout() {
       </AppShell.Header>
       
       <AppShell.Main pt={85}>
-        <Container size="xl">
-          <WebSocketVisualizer />
-        </Container>
+        <Dashboard />
       </AppShell.Main>
     </AppShell>
   );
@@ -95,14 +93,14 @@ function DashboardLayout() {
 
 function App() {
   return (
-    <MantineProvider defaultColorScheme="dark">
+    <MantineProvider theme={theme} defaultColorScheme="dark">
       <WebSocketProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/plot/0" replace />} />
             <Route path="/dashboard" element={<DashboardLayout />} />
             <Route path="/plot/:vizIndex" element={<FullScreenPlot />} />
-            <Route path="*" element={<Navigate to="/plot/0" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>
       </WebSocketProvider>

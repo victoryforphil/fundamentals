@@ -84,7 +84,7 @@ pub async fn start_server(args: WSBridgeArgs) {
 
     // Auto open static path + /plot/0
     if args.open_browser {
-        let url = format!("http://localhost:{}/plot/0", args.port);
+        let url = format!("http://localhost:{}", args.port);
         open::that(url).unwrap();
     }
     
