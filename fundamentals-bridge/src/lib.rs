@@ -27,6 +27,10 @@ pub struct WSBridgeArgs {
     /// Exit after serving the first request
     #[clap(long)]
     pub exit_after_serve: bool,
+
+    /// Open the browser after serving the first request
+    #[clap(long)]
+    pub open_browser: bool,
 }
 
 /// Starts the WebSocket bridge server with the given arguments
@@ -79,19 +83,22 @@ pub async fn start_server(args: WSBridgeArgs) {
     println!("Server started at http://0.0.0.0:{}", args.port);
 
     // Auto open static path + /plot/0
-    let url = format!("http://localhost:{}/plot/0", args.port);
-    open::that(url).unwrap();
+    if args.open_browser {
+        let url = format!("http://localhost:{}/plot/0", args.port);
+        open::that(url).unwrap();
+    }
     
     warp::serve(routes).run(socket_addr).await;
 }
 
 /// Starts the WebSocket bridge server with the given recording file
-pub async fn start_server_with_recording(recording_path: PathBuf, port: u16) {
+pub async fn start_server_with_recording(recording_path: PathBuf, port: u16, exit_after_serve: bool, open_browser: bool) {
     let args = WSBridgeArgs {
         address: "127.0.0.1".to_string(),
         port,
         input: recording_path,
-        exit_after_serve: true,
+        exit_after_serve,
+        open_browser,
     };
     
     start_server(args).await;

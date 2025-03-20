@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 
 // Define the data types based on recording.json structure
 export interface PlotScalarData {
@@ -16,7 +16,7 @@ export interface Viz {
   name: string;
   source: string | null;
   widgets: PlotWidget[];
-  range: any | null;
+  range: Record<string, unknown> | null;
 }
 
 // Define the message type from the Rust backend
@@ -66,6 +66,8 @@ export function WebSocketProvider({
   const [messages, setMessages] = useState<Viz[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [connectionUrl, setConnectionUrl] = useState(defaultUrl);
+  const hasConnectedOnce = useRef(false);
+  const reconnectTimer = useRef<number | undefined>(undefined);
 
   // Function to clear all messages
   const clearMessages = () => {
@@ -87,6 +89,7 @@ export function WebSocketProvider({
       newSocket.onopen = () => {
         setIsConnected(true);
         setError(null);
+        hasConnectedOnce.current = true;
         console.log('WebSocket connected to', url);
       };
 
@@ -111,29 +114,47 @@ export function WebSocketProvider({
       newSocket.onclose = () => {
         setIsConnected(false);
         console.log('WebSocket disconnected');
+        
+        // If we've never connected successfully, start fast reconnection attempts
+        if (!hasConnectedOnce.current) {
+          scheduleReconnect(url);
+        }
       };
 
     } catch (err) {
       console.error('Failed to connect WebSocket:', err);
       setError(`Failed to connect: ${err}`);
       setIsConnected(false);
+      
+      // If we've never connected successfully, start fast reconnection attempts
+      if (!hasConnectedOnce.current) {
+        scheduleReconnect(url);
+      }
     }
+  }
+  
+  // Schedule a reconnection attempt
+  function scheduleReconnect(url: string) {
+    if (reconnectTimer.current) {
+      window.clearTimeout(reconnectTimer.current);
+    }
+    
+    reconnectTimer.current = window.setTimeout(() => {
+      console.log('Attempting to reconnect...');
+      connect(url);
+    }, 250); // 4Hz = every 250ms
   }
 
   // Auto-reconnect if connection is lost
   useEffect(() => {
-    let reconnectTimer: number | undefined;
-
-    if (!isConnected && !socket) {
-      reconnectTimer = window.setTimeout(() => {
-        console.log('Attempting to reconnect...');
-        connect(connectionUrl);
-      }, 3000);
+    // If not connected and no active socket and we haven't connected successfully yet
+    if (!isConnected && !socket && !hasConnectedOnce.current) {
+      scheduleReconnect(connectionUrl);
     }
 
     return () => {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
+      if (reconnectTimer.current) {
+        window.clearTimeout(reconnectTimer.current);
       }
     };
   }, [isConnected, socket, connectionUrl]);
@@ -144,6 +165,9 @@ export function WebSocketProvider({
 
     // Cleanup function to close the connection when component unmounts
     return () => {
+      if (reconnectTimer.current) {
+        window.clearTimeout(reconnectTimer.current);
+      }
       if (socket) {
         socket.close();
       }

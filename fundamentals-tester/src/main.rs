@@ -8,6 +8,15 @@ use log::info;
 struct Args {
     #[clap(short, long, default_value = "test_logger.json")]
     output: String,
+
+    #[clap(short, long, default_value = "false")]
+    viewer: bool,
+
+    #[clap(short, long, default_value = "true")]
+    bridge: bool,
+
+    #[clap(short, long, default_value = "false")]
+    open_browser: bool,
 }
 #[tokio::main]
 async fn main() {   
@@ -28,8 +37,16 @@ async fn main() {
     info!("Logging Test Plotter");
     plotter.log(&mut logger.recording);
 
-    info!("Launching Web Viewer");
-    logger.launch_bridge().await.unwrap();
+    if args.viewer {
+        info!("Launching Web Viewer");
+        logger.launch_tauri().unwrap();
+    }
 
+    if args.bridge {
+        info!("Launching Bridge");
+        logger.launch_bridge(args.open_browser  ).await.unwrap();
+    }
     
+    
+
 }

@@ -55,7 +55,7 @@ export default function FullScreenPlot() {
   }, [messages, vizIndex]);
 
   // Function to navigate back to the main page
-  const goBack = () => navigate('/');
+  const goBack = () => navigate('/dashboard');
 
   // If we don't have a valid visualization yet
   if (!viz) {

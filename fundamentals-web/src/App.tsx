@@ -32,7 +32,7 @@ function ThemeToggle() {
 
 // Layout component for the dashboard view
 function DashboardLayout() {
-  const [wsParam, setWsParam] = useState<string | null>(null);
+  const [, setWsParam] = useState<string | null>(null);
   const location = useLocation();
 
   // Get the current WebSocket URL parameter
@@ -99,9 +99,10 @@ function App() {
       <WebSocketProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<DashboardLayout />} />
+            <Route path="/" element={<Navigate to="/plot/0" replace />} />
+            <Route path="/dashboard" element={<DashboardLayout />} />
             <Route path="/plot/:vizIndex" element={<FullScreenPlot />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/plot/0" replace />} />
           </Routes>
         </BrowserRouter>
       </WebSocketProvider>
