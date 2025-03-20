@@ -81,6 +81,7 @@ export function WebSocketProvider({
   const [connectionUrl, setConnectionUrl] = useState(defaultUrl);
   const reconnectTimer = useRef<number | undefined>(undefined);
   const reconnectAttempts = useRef(0);
+  const hasConnectedBefore = useRef(false);
 
   // Function to clear all messages
   const clearMessages = () => {
@@ -103,13 +104,13 @@ export function WebSocketProvider({
         setIsConnected(true);
         setError(null);
         reconnectAttempts.current = 0;
+        hasConnectedBefore.current = true;
         console.log('WebSocket connected to', url);
       };
 
       newSocket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as WSMessage;
-          // Based on the ws_handler.rs, messages are of type VizUpdate
           if ('VizUpdate' in data) {
             setMessages((prev) => [...prev, data.VizUpdate]);
             console.log('Received viz update:', data.VizUpdate);
@@ -127,33 +128,40 @@ export function WebSocketProvider({
       newSocket.onclose = () => {
         setIsConnected(false);
         console.log('WebSocket disconnected');
-        // Always try to reconnect, regardless if we've connected before
-        scheduleReconnect(url);
+        
+        // Only attempt reconnection if we haven't connected before
+        if (!hasConnectedBefore.current) {
+          scheduleReconnect(url);
+        }
       };
 
     } catch (err) {
       console.error('Failed to connect WebSocket:', err);
       setError(`Failed to connect: ${err}`);
       setIsConnected(false);
-      // Always try to reconnect on error
-      scheduleReconnect(url);
+      
+      // Only attempt reconnection if we haven't connected before
+      if (!hasConnectedBefore.current) {
+        scheduleReconnect(url);
+      }
     }
   }
   
-  // Schedule a reconnection attempt with exponential backoff
+  // Schedule a reconnection attempt with fixed interval
   function scheduleReconnect(url: string) {
+    if (hasConnectedBefore.current) {
+      return;
+    }
+    
     if (reconnectTimer.current) {
       window.clearTimeout(reconnectTimer.current);
     }
     
-    // Calculate backoff time: start with 250ms, max at 5s
-    const backoffTime = Math.min(250 * Math.pow(1.5, reconnectAttempts.current), 5000);
-    reconnectAttempts.current += 1;
-    
+    // Fixed 250ms reconnect rate (4Hz)
     reconnectTimer.current = window.setTimeout(() => {
-      console.log(`Attempting to reconnect (attempt ${reconnectAttempts.current})...`);
+      reconnectAttempts.current += 1;
       connect(url);
-    }, backoffTime);
+    }, 100);
   }
 
   // Initial connection and cleanup

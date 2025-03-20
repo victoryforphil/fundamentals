@@ -1,9 +1,12 @@
 use core::time;
 
 use fundamentals_core::{
-    recording::Recording, 
-    widgets::{Widget, three_d_view::{ThreeDPrimative, ThreeDViewData}},
-    viz::Viz
+    recording::Recording,
+    viz::Viz,
+    widgets::{
+        three_d_view::{ThreeDPrimative, ThreeDViewData},
+        Widget,
+    },
 };
 
 pub struct ThreeDView {
@@ -38,4 +41,4 @@ impl ThreeDView {
         let widget = Widget::ThreeDView(three_d_view_data);
         Viz::new(self.name.clone()).with_widget(widget)
     }
-} 
+}

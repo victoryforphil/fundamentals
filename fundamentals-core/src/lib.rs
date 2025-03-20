@@ -1,5 +1,3 @@
-
-
-pub mod widgets;
-pub mod viz;
 pub mod recording;
+pub mod viz;
+pub mod widgets;
