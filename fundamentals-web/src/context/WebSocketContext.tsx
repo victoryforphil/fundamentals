@@ -7,7 +7,7 @@ export interface PlotScalarData {
 }
 
 export interface PlotWidget {
-  PlotScalar?: PlotScalarData;
+  plot_scalar?: PlotScalarData;
   // We can add other widget types as needed
 }
 

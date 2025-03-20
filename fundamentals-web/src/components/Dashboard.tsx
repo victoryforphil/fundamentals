@@ -52,7 +52,7 @@ export default function Dashboard() {
   
   // Navigate to full screen plot view
   const viewFullScreen = (index: number) => {
-    navigate(`/plot/${index}`);
+    navigate(`/plot_scalar/${index}`);
   };
   
   return (
@@ -118,11 +118,11 @@ export default function Dashboard() {
           <Grid gutter="md">
             {messages.map((viz, index) => (
               viz.widgets.map((widget, widgetIndex) => (
-                widget.PlotScalar && (
+                widget.plot_scalar && (
                   <Grid.Col span={{ base: 12, md: 6, lg: 4 }} key={`${index}-${widgetIndex}`}>
                     <div style={{ position: 'relative' }}>
                       <PlotViz 
-                        data={widget.PlotScalar} 
+                        data={widget.plot_scalar} 
                         name={viz.name}
                         onFullscreen={() => viewFullScreen(index)} 
                       />

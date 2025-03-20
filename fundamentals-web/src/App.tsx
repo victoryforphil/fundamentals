@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { MantineProvider, AppShell, Flex, Title, Text, Group, Menu, ActionIcon, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
-import { WebSocketProvider } from './context/WebSocketContext';
+import { MantineProvider, AppShell, Flex, Title, Text, Group, Menu, ActionIcon, useComputedColorScheme, useMantineColorScheme, Center, Loader, Stack, Paper } from '@mantine/core';
+import { WebSocketProvider, useWebSocket } from './context/WebSocketContext';
 import FullScreenPlot from './components/FullScreenPlot';
 import Dashboard from './components/Dashboard';
 import { theme } from './theme'
 import { IconSettings, IconSun, IconMoon } from '@tabler/icons-react';
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import '@mantine/core/styles.css';
 import '@mantine/charts/styles.css';
 import '@mantine/code-highlight/styles.css';
@@ -91,16 +91,92 @@ function DashboardLayout() {
   );
 }
 
+// Component to handle auto-routing to the latest recording
+function AutoRouter() {
+  const navigate = useNavigate();
+  const { messages, isConnected } = useWebSocket();
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    // Set a timeout to show loading state for at least 1 second
+    const timer = setTimeout(() => {
+      if (messages.length > 0) {
+        // Get the latest viz (recording)
+        const latestViz = messages[messages.length - 1];
+        
+        // Check if it has widgets
+        if (latestViz.widgets.length > 0) {
+          // Determine the widget type from the first widget
+          const firstWidget = latestViz.widgets[0];
+          
+          // Use the appropriate route based on the widget type
+          if ('plot_scalar' in firstWidget) {
+            navigate(`/plot_scalar/${messages.length - 1}`);
+          } else if ('3d_view' in firstWidget) {
+            navigate(`/3d_view/${messages.length - 1}`);
+          } else {
+            // Default to dashboard if widget type is unknown
+            navigate('/dashboard');
+          }
+        } else {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [messages, navigate]);
+  
+  // Show a nice loading screen while waiting for data
+  return (
+    <Center style={{ height: '100vh' }}>
+      <Paper p="xl" radius="md" shadow="sm" withBorder>
+        <Stack align="center" gap="lg">
+          <Title order={2}>Fundamentals</Title>
+          <Loader size="xl" type="dots" />
+          {loading ? (
+            <Title order={4}>Waiting for visualizations...</Title>
+          ) : (
+            <Stack align="center" gap="sm">
+              <Title order={4}>No visualizations found</Title>
+              <ActionIcon 
+                size="lg" 
+                variant="filled" 
+                color="blue" 
+                onClick={() => navigate('/dashboard')}
+              >
+                Go to Dashboard
+              </ActionIcon>
+            </Stack>
+          )}
+          <Center>
+            <div style={{ position: 'relative', top: '10px' }}>
+              {isConnected ? (
+                <Title order={6} c="green">Connected</Title>
+              ) : (
+                <Title order={6} c="red">Disconnected - Reconnecting...</Title>
+              )}
+            </div>
+          </Center>
+        </Stack>
+      </Paper>
+    </Center>
+  );
+}
+
 function App() {
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
       <WebSocketProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/plot/0" replace />} />
+            <Route path="/" element={<AutoRouter />} />
             <Route path="/dashboard" element={<DashboardLayout />} />
-            <Route path="/plot/:vizIndex" element={<FullScreenPlot />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/plot_scalar/:vizIndex" element={<FullScreenPlot />} />
+            <Route path="/3d_view/:vizIndex" element={<FullScreenPlot />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </WebSocketProvider>

@@ -148,11 +148,11 @@ function renderFullScreenPlot(viz: Viz) {
   // This could be enhanced to handle different plot types
   const widget = viz.widgets[0];
   
-  if (widget.PlotScalar) {
+  if (widget.plot_scalar) {
     return (
       <Box style={{ height: '100%', padding: '16px' }}>
         <PlotViz 
-          data={widget.PlotScalar} 
+          data={widget.plot_scalar} 
           name={viz.name} 
           fullScreen={true}
         />
